@@ -1,9 +1,11 @@
 import { Observer } from "rx";
-import { interval, Observable, pipe } from "rxjs";
+import { interval, Observable, pipe, timer } from "rxjs";
 // tslint:disable: no-console
 
 import { from, fromEvent, of, Subscriber } from "rxjs";
-import { reduce, map, pluck, tap, filter, skip, take, timeInterval, delay, debounceTime } from "rxjs/operators";
+import { reduce, map, pluck, tap, filter, skip, take, timeInterval, 
+			delay, debounceTime, buffer, bufferCount, bufferWhen } from "rxjs/operators";
+const R = require('ramda');
 
 /* const people: string[] = ["Micheal", "Jim", "Dwight"];
 
@@ -171,7 +173,7 @@ function appendResults(result: any, container: any){
 	container.appendChild(li);
 }
 
-let timeoutId: any = null;
+/* let timeoutId: any = null;
 searchBox.addEventListener('keyup', function (event: any) {
 	clearTimeout(timeoutId);
 	timeoutId = setTimeout(function (query) {
@@ -191,8 +193,8 @@ searchBox.addEventListener('keyup', function (event: any) {
 	
 	}, 1000, event.target.value);
 }); 
-  
-/* const notEmpty = (input: string) => !!input && input.trim().length > 0;
+   */
+const notEmpty = (input: string) => !!input && input.trim().length > 0;
 
 const sendRequest = function(arr: Array<string>, query: string){
 	return arr.filter((item:any) => {
@@ -217,12 +219,46 @@ const searchBar$ = fromEvent(searchBox, 'keyup')
 					}
 				});
 
- */
+const BufferTimer$ = timer(0, 50)
+					.pipe(
+						buffer(timer(500)),												
+					).subscribe(val => console.log(`Data in buffer: [${val}]`))
 
+const amountTextBox = document.getElementById('amount');
+const warningMessage = document.getElementById('amount-warning');
 
+const buffercount$ = fromEvent(amountTextBox, 'keyup')
+							.pipe(
+								bufferCount(5),
+								map((events: any) => events[0].target.value),
+								map(val => parseInt(val, 10)),
+								filter(val => !Number.isNaN(val)),
+							).subscribe(amount => {
+								console.log(`Amount: ${amount}`)
+								warningMessage.setAttribute('style', 'display: inline');
+							})
 
+const field = document.getElementById('form-field');
+const showHistoryButton = document.getElementById('show-history');
+const historyPanel = document.getElementById('history');
 
+const showHistory$ = fromEvent(showHistoryButton, 'click');
 
+// Buffer When
+const mainObser$ = fromEvent(field, 'keyup').pipe(
+						  debounceTime(200),
+						  pluck('target', 'value'),
+						  filter(R.compose(R.not, R.isEmpty)),
+						  bufferWhen(() => showHistory$),
+						).subscribe(history => {
+							let contents = "";
+							if(history.length > 0){
+								for(let item of history){
+									contents += '<li>' + item + '</li>';
+								}
+								historyPanel.innerHTML = contents;
+							}
+						});
 
 
 
