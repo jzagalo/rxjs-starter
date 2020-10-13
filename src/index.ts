@@ -1,10 +1,10 @@
 import { Observer } from "rx";
-import { interval, Observable, pipe, timer } from "rxjs";
+import { combineLatest, interval, Observable, pipe, timer } from "rxjs";
 // tslint:disable: no-console
 
 import { from, fromEvent, of, Subscriber } from "rxjs";
 import { reduce, map, pluck, tap, filter, skip, take, timeInterval, 
-			delay, debounceTime, buffer, bufferCount, bufferWhen } from "rxjs/operators";
+			delay, debounceTime, buffer, bufferCount, bufferWhen, bufferTime } from "rxjs/operators";
 const R = require('ramda');
 
 /* const people: string[] = ["Micheal", "Jim", "Dwight"];
@@ -259,8 +259,40 @@ const mainObser$ = fromEvent(field, 'keyup').pipe(
 								historyPanel.innerHTML = contents;
 							}
 						});
+// BufferTime Combined with Timer
 
+const password = document.getElementById('password');
+const submit = document.getElementById('submit');
+const outputField = document.getElementById('output');
+const getKeyCode = (event: any) => event.keyCode - 48;
+const getValue = (value: number) => 0 <= value && value <= 9;
 
+const password$ = fromEvent(password, 'keyup')
+					.pipe(						
+					   map(getKeyCode),
+					   filter(getValue)
+					);
+const submit$ = fromEvent(submit, 'click');
+const result$ = combineLatest(
+		password$.pipe(
+			bufferTime(7000),
+			filter(R.compose(R.not, R.isEmpty))
+		),
+		submit$)
+	.pipe(
+		take(10),		
+	).subscribe((maybePassword) => {
+		
+		if(maybePassword[0].join('') === '1337'){
+			outputField.innerHTML = 'Correct Password'
+		}else {
+			outputField.innerHTML = 'Wrong Password'
+		}
+	},
+	err => {},
+	() => outputField.innerHTML = 'No more tries accepted'
+	);
+						
 
 
 
