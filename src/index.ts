@@ -1,9 +1,9 @@
 import { Observer } from "rx";
-import { interval, Observable } from "rxjs";
+import { interval, Observable, pipe } from "rxjs";
 // tslint:disable: no-console
 
 import { from, fromEvent, of, Subscriber } from "rxjs";
-import { reduce, map, pluck, tap, filter, skip, take, timeInterval } from "rxjs/operators";
+import { reduce, map, pluck, tap, filter, skip, take, timeInterval, delay, debounceTime } from "rxjs/operators";
 
 /* const people: string[] = ["Micheal", "Jim", "Dwight"];
 
@@ -131,7 +131,93 @@ currencyObs$.subscribe(
 	(price: any) => document.getElementById('price').textContent = price
 );
 
+const timeObjs$ = of([ 1, 2,3, 4, 5])
+					.pipe(
+						tap(x => console.log(`Emitted: ${x}`)),
+						delay(200),						
+					).subscribe(x => console.log(`Recieved: ${x}`));
 
+
+const label = document.getElementById('tell');
+const clickStream$ = fromEvent(label, 'click')
+						.pipe(
+							debounceTime(1000),
+						).subscribe((c: any) => console.log(`Clicked at position ${c.clientX} and ${c.clientY}`))
+					
+
+let testData = [
+	'github.com/Reactive-Extensions/RxJS',
+	'github.com/ReactiveX/RxJS',
+	'xgrommx.github.io/rx-book',
+	'reactivex.io',
+	'egghead.io/technologies/rx',
+	'rxmarbles.com',
+	'https://www.manning.com/books/rxjs-in-action'
+];
+
+const searchBox = document.getElementById('search');
+const results = document.getElementById('results');
+
+function clearResults(container: any){
+	while(container.childElementCount > 0){
+		container.innerHTML = "";
+	}
+}
+
+function appendResults(result: any, container: any){
+	let li = document.createElement('li');
+	let text = document.createTextNode(result);
+	li.appendChild(text);
+	container.appendChild(li);
+}
+
+let timeoutId: any = null;
+searchBox.addEventListener('keyup', function (event: any) {
+	clearTimeout(timeoutId);
+	timeoutId = setTimeout(function (query) {
+		console.log('querying...');
+		let searchResults = [];
+		if(query && query.length > 0) {
+			clearResults(results);
+			for(let result of testData) {
+				if(result.startsWith(query)) {
+					searchResults.push(result);
+				}
+			}
+		}
+		for(let result of searchResults) {
+			appendResults(result, results);
+		}
+	
+	}, 1000, event.target.value);
+}); 
+  
+/* const notEmpty = (input: string) => !!input && input.trim().length > 0;
+
+const sendRequest = function(arr: Array<string>, query: string){
+	return arr.filter((item:any) => {
+		return query.length > 0 &&
+		item.startsWith(query);
+	})
+}
+
+const searchBar$ = fromEvent(searchBox, 'keyup')
+				.pipe(
+					debounceTime(1000),
+					pluck('target', 'value'),
+					filter(notEmpty),
+					tap(query => console.log(`Query for ${query}...`)),
+					map(query => sendRequest(testData, query))
+				).subscribe(result => {
+					results.innerHTML = "";
+					if(result.length === 0){
+						clearResults(results);
+					} else{						
+						appendResults(result, results)
+					}
+				});
+
+ */
 
 
 
