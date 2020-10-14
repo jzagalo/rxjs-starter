@@ -5,7 +5,7 @@ import { combineLatest, concat, interval, merge, Observable, pipe, timer } from 
 import { from, fromEvent, of, Subscriber } from "rxjs";
 import { ajax } from "rxjs/ajax";
 import { reduce, map, pluck, tap, filter, skip, take, timeInterval, 
-			delay, debounceTime, buffer, bufferCount, bufferWhen, bufferTime, mergeMap, defaultIfEmpty } from "rxjs/operators";
+			delay, debounceTime, buffer, bufferCount, bufferWhen, bufferTime, mergeMap, defaultIfEmpty, concatMap, takeUntil } from "rxjs/operators";
 const R = require('ramda');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 var xhr = new XMLHttpRequest();
@@ -91,7 +91,7 @@ const promise$ = from(computerFuturesValue)
 						val => console.log(val),
 						err => console.log(`${err}`),
 						() => console.log(" All done") 
-					);*/
+					);
 const rxdo$ = from([
 	'The quick brown fox',
 	'jumps over the lazy dogs'
@@ -162,7 +162,7 @@ let testData = [
 	'https://www.manning.com/books/rxjs-in-action'
 ];
 
-const searchBox = document.getElementById('search');
+/* const searchBox = document.getElementById('search');
 const results = document.getElementById('results');
 const count = document.getElementById('count');
 
@@ -201,7 +201,7 @@ searchBox.addEventListener('keyup', function (event: any) {
 	
 	}, 1000, event.target.value);
 }); 
-   */
+  
 function createXHR(){
 	return new XMLHttpRequest();
 }
@@ -233,8 +233,7 @@ const searchBar$ = fromEvent(searchBox, 'keyup')
 						)
 					),
 					mergeMap(R.map(R.prop('title')))
-				).subscribe(arr => {
-					
+				).subscribe(arr => {					
 					count.innerHTML = `${arr.length} results`;
 					//clearResults(results);
 					appendResults(arr, results);
@@ -322,7 +321,7 @@ const source2$ = interval(1000).pipe(
 	map(y => `Source 2 ${y}`),
 	take(3));
 
-merge(source1$, source2$).subscribe(console.log);
+merge(source1$, source2$).subscribe(console.log); */
 
 //Event Merges
 /* const mouseUp$ = fromEvent(document, 'mouseup');
@@ -360,4 +359,33 @@ const FlattenedArray  = dataToFlatten.reduce((a, b) => {
 	return a.concat(b)
   }, []); 
 
-console.log("RFlat ", R.flatten(dataToFlatten));
+const arraySource = [1, 2, 3];
+
+const answer = arraySource.map(value => Array(value).fill(value));
+console.log(answer);
+
+const panel = document.getElementById('dragTarget');
+
+const mouseDown$ = fromEvent(panel, 'mousedown');
+const mouseUp$ = fromEvent(document, 'mouseup');
+const mouseMove$ = fromEvent(document, 'mousemove');
+
+/*const drag$ = mouseDown$
+				.pipe(mergeMap(() => mouseMove$.pipe(takeUntil(mouseUp$)))
+				);*/
+const drag$ = mouseDown$.pipe(concatMap(() => mouseMove$.pipe(takeUntil(mouseUp$.pipe(filter(() => confirm('Drop widget here')))))));
+drag$.subscribe((event: any) => {
+	panel.style.left = event.clientX + 'px';
+	panel.style.top = event.clientY + 'px';
+})
+
+const interval$ = interval(1000);
+const click$ = fromEvent(document, 'click');
+
+interval$.pipe(takeUntil(click$)).subscribe(
+	x => console.log(x),
+	err => console.log(`Error ${err}`),
+	() => console.log('Ok, user is back')
+);
+
+
