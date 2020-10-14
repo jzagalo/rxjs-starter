@@ -1,11 +1,16 @@
 import { Observer } from "rx";
-import { combineLatest, interval, Observable, pipe, timer } from "rxjs";
+import { combineLatest, concat, interval, merge, Observable, pipe, timer } from "rxjs";
 // tslint:disable: no-console
 
 import { from, fromEvent, of, Subscriber } from "rxjs";
+import { ajax } from "rxjs/ajax";
 import { reduce, map, pluck, tap, filter, skip, take, timeInterval, 
-			delay, debounceTime, buffer, bufferCount, bufferWhen, bufferTime } from "rxjs/operators";
+			delay, debounceTime, buffer, bufferCount, bufferWhen, bufferTime, mergeMap, defaultIfEmpty } from "rxjs/operators";
 const R = require('ramda');
+var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+var xhr = new XMLHttpRequest();
+
+
 
 /* const people: string[] = ["Micheal", "Jim", "Dwight"];
 
@@ -159,6 +164,9 @@ let testData = [
 
 const searchBox = document.getElementById('search');
 const results = document.getElementById('results');
+const count = document.getElementById('count');
+
+const URL = 'https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&utf8=1&origin=*&srsearch=';
 
 function clearResults(container: any){
 	while(container.childElementCount > 0){
@@ -166,7 +174,7 @@ function clearResults(container: any){
 	}
 }
 
-function appendResults(result: any, container: any){
+function appendResults(result: any, container: any){	
 	let li = document.createElement('li');
 	let text = document.createTextNode(result);
 	li.appendChild(text);
@@ -194,6 +202,10 @@ searchBox.addEventListener('keyup', function (event: any) {
 	}, 1000, event.target.value);
 }); 
    */
+function createXHR(){
+	return new XMLHttpRequest();
+}
+
 const notEmpty = (input: string) => !!input && input.trim().length > 0;
 
 const sendRequest = function(arr: Array<string>, query: string){
@@ -209,14 +221,23 @@ const searchBar$ = fromEvent(searchBox, 'keyup')
 					pluck('target', 'value'),
 					filter(notEmpty),
 					tap(query => console.log(`Query for ${query}...`)),
-					map(query => sendRequest(testData, query))
-				).subscribe(result => {
-					results.innerHTML = "";
-					if(result.length === 0){
-						clearResults(results);
-					} else{						
-						appendResults(result, results)
-					}
+					map(query => URL + query),
+					mergeMap(query => 
+						ajax({ 
+							createXHR,
+							 url: query,
+							 crossDomain: true,							 
+							 }).pipe(
+							pluck('response', 'query', 'search'),
+							defaultIfEmpty([])
+						)
+					),
+					mergeMap(R.map(R.prop('title')))
+				).subscribe(arr => {
+					
+					count.innerHTML = `${arr.length} results`;
+					//clearResults(results);
+					appendResults(arr, results);
 				});
 
 const BufferTimer$ = timer(0, 50)
@@ -281,8 +302,7 @@ const result$ = combineLatest(
 		submit$)
 	.pipe(
 		take(10),		
-	).subscribe((maybePassword) => {
-		
+	).subscribe((maybePassword) => {		
 		if(maybePassword[0].join('') === '1337'){
 			outputField.innerHTML = 'Correct Password'
 		}else {
@@ -293,6 +313,51 @@ const result$ = combineLatest(
 	() => outputField.innerHTML = 'No more tries accepted'
 	);
 						
+//Merge Observables
+const source1$ = interval(1000).pipe(
+		map(x => `Source 1 ${x}`),
+		take(3));
+
+const source2$ = interval(1000).pipe(
+	map(y => `Source 2 ${y}`),
+	take(3));
+
+merge(source1$, source2$).subscribe(console.log);
+
+//Event Merges
+/* const mouseUp$ = fromEvent(document, 'mouseup');
+const touchEnd$ = fromEvent(document, 'touchEnd');
+
+merge(mouseUp$, touchEnd$)
+	.pipe(
+		tap(event => console.log(event.type)),
+		map((event: any) => {
+			switch(event.type){
+				case 'touchend':
+					return {
+						left: event.changedTouches[0].clientX,
+						top: event.changedTouches[0].clientY
+					};
+				case 'mouseup':
+					return {
+						left: event.clientX,
+						top: event.clientY
+					};
+				default:
+					return null;
+			}
+		})
+	).subscribe(obj => console.log(`Left: ${obj.left},
+			Top: ${obj.top}`)) */
 
 
+merge(from([1,2,3]), from(['a', 'b', 'c']))
+.subscribe(result => console.log(`Result ${result}`));
 
+let dataToFlatten = [[0, 1], [2, 3]];
+
+const FlattenedArray  = dataToFlatten.reduce((a, b) => {
+	return a.concat(b)
+  }, []); 
+
+console.log("RFlat ", R.flatten(dataToFlatten));
